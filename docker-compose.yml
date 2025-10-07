@@ -30,7 +30,7 @@ services:
       - 81:80
       - 444:443
       - 444:443/udp
-      - 7080:7080
+      - 7081:7080
     restart: always
     environment:
       TZ: ${TimeZone}
