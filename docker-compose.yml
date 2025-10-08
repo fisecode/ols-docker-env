@@ -1,11 +1,11 @@
+version: '3.8'
+
 services:
   mysql:
     image: mariadb:11.4
-    logging:
-      driver: none
     command: ["--max-allowed-packet=512M"]
     volumes:
-      - "./data/db:/var/lib/mysql:delegated"
+      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -14,9 +14,13 @@ services:
     restart: always
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   litespeed:
     image: litespeedtech/openlitespeed:${OLS_VERSION}-${PHP_VERSION}
-    container_name: litespeed
     env_file:
       - .env
     volumes:
@@ -27,38 +31,47 @@ services:
       - ./acme:/root/.acme.sh/
       - ./logs:/usr/local/lsws/logs/
     ports:
-      - 81:80
-      - 444:443
-      - 444:443/udp
-      - 7081:7080
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+      - "7080:7080"
     restart: always
     environment:
       TZ: ${TimeZone}
     networks:
       - default
+    depends_on:
+      - mysql
+      - redis
   phpmyadmin:
     image: phpmyadmin:latest
     ports:
-      - 8082:8080
-      - 8443:8443
+      - "8080:80"
     environment:
-        DATABASE_HOST: mysql
+      PMA_HOST: mysql
+      PMA_PORT: 3306
     restart: always
     networks:
       - default
+    depends_on:
+      - mysql
   redis:
-    image: "redis:alpine"
-    logging:
-      driver: none
-    # command: redis-server --requirepass 8b405f60665e48f795752e534d93b722
+    image: redis:alpine
     volumes:
-      - ./redis/data:/var/lib/redis
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    environment:
-      - REDIS_REPLICATION_MODE=master
+      - redis_data:/data
     restart: always
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
 networks:
   default:
     driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
