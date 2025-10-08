@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 source .env
 APP_NAME='wordpress'
-CONT_NAME='litespeed'
+# Get dynamic container name
+CONT_NAME=$(docker compose ps -q litespeed 2>/dev/null | head -n 1 | xargs -r docker inspect --format '{{.Name}}' 2>/dev/null | sed 's/^\///' || echo 'litespeed')
 DOC_FD=''
 
 echow(){
@@ -71,7 +72,7 @@ EOT
 }
 
 app_download(){
-    docker compose exec -T ${CONT_NAME} su -c "appinstallctl.sh --app ${1} --domain ${2}"
+    docker exec -i ${CONT_NAME} su -c "appinstallctl.sh --app ${1} --domain ${2}"
 }
 
 lsws_restart(){

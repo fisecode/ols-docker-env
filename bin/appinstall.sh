@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Get dynamic container name
+CONT_NAME=$(docker compose ps -q litespeed 2>/dev/null | head -n 1 | xargs -r docker inspect --format '{{.Name}}' 2>/dev/null | sed 's/^\///' || echo 'litespeed')
 APP_NAME=''
 DOMAIN=''
 EPACE='        '
@@ -27,7 +29,7 @@ check_input(){
 }
 
 app_download(){
-    docker compose exec litespeed su -c "appinstallctl.sh --app ${1} --domain ${2}"
+    docker exec ${CONT_NAME} su -c "appinstallctl.sh --app ${1} --domain ${2}"
     bash bin/webadmin.sh -r
     exit 0
 }
